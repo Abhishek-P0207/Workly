@@ -52,12 +52,12 @@ export class TaskService {
             )
             returning *
         `;
-        
+
         const task = result[0];
-        
+
         // Add history entry for creation
         await HistoryService.addEntry(
-            task.id, 
+            task.id,
             'created',
             null,
             {
@@ -68,7 +68,7 @@ export class TaskService {
                 status: taskData.status,
             }
         );
-        
+
         return task;
     }
 
@@ -135,25 +135,25 @@ export class TaskService {
 
     static async updateTask(id: string, updates: TaskUpdate, oldTask: any) {
         const result = await sql`
-            update tasks
-            set ${sql(updates, ...Object.keys(updates))},
-                updated_at = now()
-            where id = ${id}
-            returning *
+        update tasks
+        set ${sql(updates)},
+            updated_at = now()
+        where id = ${id}
+        returning *
         `;
-        
+
         if (result.length > 0) {
             // Track what changed - separate old and new values
             const oldValue: any = {};
             const newValue: any = {};
-            
+
             for (const key of Object.keys(updates)) {
                 if (oldTask[key] !== (updates as any)[key]) {
                     oldValue[key] = oldTask[key];
                     newValue[key] = (updates as any)[key];
                 }
             }
-            
+
             // Determine action type based on what changed
             let action: 'updated' | 'status_changed' | 'completed' = 'updated';
             if (newValue.status && oldValue.status !== newValue.status) {
@@ -162,20 +162,20 @@ export class TaskService {
             if (newValue.status === 'completed' && oldValue.status !== 'completed') {
                 action = 'completed';
             }
-            
+
             // Add history entry for update
             await HistoryService.addEntry(id, action, oldValue, newValue);
-            
+
             return result[0];
         }
-        
+
         return null;
     }
 
     static async deleteTask(id: string, taskData: any) {
         // Add history entry for deletion BEFORE deleting
         await HistoryService.addEntry(
-            id, 
+            id,
             'deleted',
             {
                 title: taskData.title,
@@ -186,7 +186,7 @@ export class TaskService {
             },
             null
         );
-        
+
         await sql`delete from tasks where id = ${id}`;
     }
 }

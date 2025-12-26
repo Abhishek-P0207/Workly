@@ -20,7 +20,7 @@ export class tasksClass {
 
             // Prepare task data
             const taskData = {
-                title: description,
+                title: "",
                 description: description,
                 category: task.category,
                 priority: task.priority,
