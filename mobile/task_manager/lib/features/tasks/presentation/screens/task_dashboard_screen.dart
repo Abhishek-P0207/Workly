@@ -52,16 +52,6 @@ class TaskDashboardScreen extends ConsumerWidget {
               ref.read(themeProvider.notifier).toggleTheme();
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh Tasks',
-            onPressed: () {
-              ref.read(taskProvider.notifier).fetchTasks(
-                    category: filters.category,
-                    priority: filters.priority,
-                  );
-            },
-          ),
         ],
       ),
       body: displayTasksState.when(
@@ -107,11 +97,14 @@ class TaskDashboardScreen extends ConsumerWidget {
           final counts = taskNotifier.getTaskCounts(allTasks);
 
           return RefreshIndicator(
-            onRefresh: () => ref.read(taskProvider.notifier).fetchTasks(
-                  category: filters.category,
-                  priority: filters.priority,
-                ),
+            onRefresh: () async {
+              await ref.read(taskProvider.notifier).fetchTasks(
+                category: filters.category,
+                priority: filters.priority,
+              );
+            },
             child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
                 // Summary Cards Section
                 SliverToBoxAdapter(
@@ -256,6 +249,7 @@ class TaskDashboardScreen extends ConsumerWidget {
                 // Tasks List Section
                 if (filteredTasks.isEmpty)
                   SliverFillRemaining(
+                    hasScrollBody: false,
                     child: Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
