@@ -5,7 +5,9 @@ import '../../models/task_model.dart';
 
 class TaskApiException implements Exception {
   final String message;
-  TaskApiException(this.message);
+  final bool isNetworkError;
+  
+  TaskApiException(this.message, {this.isNetworkError = false});
 
   @override
   String toString() => message;
@@ -83,8 +85,14 @@ class TaskApi {
 
     // return [];
     } on DioException catch (e) {
+      final isNetworkError = e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.sendTimeout ||
+          e.type == DioExceptionType.receiveTimeout ||
+          e.type == DioExceptionType.connectionError;
+      
       throw TaskApiException(
         e.response?.data?['error'] ?? 'Failed to fetch tasks',
+        isNetworkError: isNetworkError,
       );
     } catch (e, st) {
       print(e);print(st);

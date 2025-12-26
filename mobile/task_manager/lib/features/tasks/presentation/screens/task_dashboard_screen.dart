@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/providers/theme_provider.dart';
+import '../../../../core/providers/connectivity_provider.dart';
+import '../../../../core/widgets/offline_banner.dart';
 import '../providers/task_provider.dart';
 import '../widgets/summary_card.dart';
 import '../widgets/filter_section.dart';
@@ -53,38 +55,55 @@ class TaskDashboardScreen extends ConsumerWidget {
             },
           ),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(0),
+          child: const OfflineBanner(),
+        ),
       ),
       body: displayTasksState.when(
         loading: () => const Center(
           child: CircularProgressIndicator(),
         ),
-        error: (error, _) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 64, color: Colors.red),
-              const SizedBox(height: 16),
-              Text(
-                'Error loading tasks',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                error.toString(),
-                style: const TextStyle(color: Colors.red),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: () {
-                  ref.read(taskProvider.notifier).fetchTasks();
-                },
-                icon: const Icon(Icons.refresh),
-                label: const Text('Retry'),
-              ),
-            ],
-          ),
-        ),
+        error: (error, _) {
+          final isOnline = ref.watch(isOnlineProvider);
+          
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  isOnline ? Icons.error_outline : Icons.cloud_off,
+                  size: 64,
+                  color: Colors.red,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  isOnline ? 'Error loading tasks' : 'No Internet Connection',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Text(
+                    isOnline 
+                        ? error.toString()
+                        : 'Please check your internet connection and try again',
+                    style: const TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    ref.read(taskProvider.notifier).fetchTasks();
+                  },
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Retry'),
+                ),
+              ],
+            ),
+          );
+        },
         data: (displayTasks) {
           final taskNotifier = ref.read(taskProvider.notifier);
           final filteredTasks = taskNotifier.getFilteredTasks(displayTasks, filters);
