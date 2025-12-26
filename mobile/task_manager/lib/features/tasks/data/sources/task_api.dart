@@ -175,4 +175,14 @@ class TaskApi {
       );
     }
   }
+
+  Future<void> deleteTask(String taskId) async {
+    try {
+      await _dio.delete('/task/$taskId');
+    } on DioException catch (e) {
+      throw TaskApiException(
+        e.response?.data?['error'] ?? 'Failed to delete task',
+      );
+    }
+  }
 }

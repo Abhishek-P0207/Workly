@@ -26,25 +26,30 @@ final activeTasksProvider = Provider<AsyncValue<List<TaskModel>>>((ref) {
 class TaskFilters {
   final String? category;
   final String? priority;
+  final String? status;
 
   const TaskFilters({
     this.category,
     this.priority,
+    this.status,
   });
 
   TaskFilters copyWith({
     String? category,
     String? priority,
+    String? status,
     bool clearCategory = false,
     bool clearPriority = false,
+    bool clearStatus = false,
   }) {
     return TaskFilters(
       category: clearCategory ? null : (category ?? this.category),
       priority: clearPriority ? null : (priority ?? this.priority),
+      status: clearStatus ? null : (status ?? this.status),
     );
   }
 
-  bool get hasFilters => category != null || priority != null;
+  bool get hasFilters => category != null || priority != null || status != null;
 }
 
 class FilterNotifier extends StateNotifier<TaskFilters> {
@@ -61,6 +66,13 @@ class FilterNotifier extends StateNotifier<TaskFilters> {
     state = state.copyWith(
       priority: priority,
       clearPriority: priority == null,
+    );
+  }
+
+  void setStatus(String? status) {
+    state = state.copyWith(
+      status: status,
+      clearStatus: status == null,
     );
   }
 
@@ -166,6 +178,55 @@ class TaskNotifier extends StateNotifier<AsyncValue<List<TaskModel>>> {
     }
   }
 
+  Future<void> updateTask({
+    required String taskId,
+    String? title,
+    String? description,
+    String? category,
+    String? priority,
+    String? status,
+    String? assignedTo,
+    DateTime? dueDate,
+  }) async {
+    try {
+      final updatedTask = await _api.updateTask(
+        taskId: taskId,
+        title: title,
+        description: description,
+        category: category,
+        priority: priority,
+        status: status,
+        assignedTo: assignedTo,
+        dueDate: dueDate,
+      );
+      
+      state = state.whenData((tasks) {
+        return tasks.map((task) {
+          if (task.id == taskId) {
+            return updatedTask;
+          }
+          return task;
+        }).toList();
+      });
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
+
+  Future<void> deleteTask(String taskId) async {
+    try {
+      await _api.deleteTask(taskId);
+      
+      state = state.whenData((tasks) {
+        return tasks.where((task) => task.id != taskId).toList();
+      });
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
+
   List<TaskModel> getFilteredTasks(List<TaskModel> tasks, TaskFilters filters) {
     return tasks.where((task) {
       if (filters.category != null &&
@@ -175,6 +236,18 @@ class TaskNotifier extends StateNotifier<AsyncValue<List<TaskModel>>> {
       if (filters.priority != null &&
           task.priority?.toLowerCase() != filters.priority?.toLowerCase()) {
         return false;
+      }
+      if (filters.status != null) {
+        final taskStatus = task.status?.toLowerCase() ?? 'pending';
+        final filterStatus = filters.status?.toLowerCase();
+        // Handle both 'in_progress' and 'in progress' formats
+        if (filterStatus == 'in_progress' || filterStatus == 'in progress') {
+          if (taskStatus != 'in_progress' && taskStatus != 'in progress') {
+            return false;
+          }
+        } else if (taskStatus != filterStatus) {
+          return false;
+        }
       }
       return true;
     }).toList();

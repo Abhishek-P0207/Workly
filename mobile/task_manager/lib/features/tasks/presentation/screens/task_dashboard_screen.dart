@@ -34,6 +34,12 @@ class TaskDashboardScreen extends ConsumerWidget {
     final themeMode = ref.watch(themeProvider);
     final isDarkMode = themeMode == ThemeMode.dark;
 
+    // Use all tasks if status filter is active (to show completed tasks)
+    // Otherwise use active tasks only
+    final displayTasksState = filters.status != null 
+        ? allTasksState 
+        : activeTasksState;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Task Dashboard'),
@@ -58,7 +64,7 @@ class TaskDashboardScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: activeTasksState.when(
+      body: displayTasksState.when(
         loading: () => const Center(
           child: CircularProgressIndicator(),
         ),
@@ -89,14 +95,14 @@ class TaskDashboardScreen extends ConsumerWidget {
             ],
           ),
         ),
-        data: (activeTasks) {
+        data: (displayTasks) {
           final taskNotifier = ref.read(taskProvider.notifier);
-          final filteredTasks = taskNotifier.getFilteredTasks(activeTasks, filters);
+          final filteredTasks = taskNotifier.getFilteredTasks(displayTasks, filters);
           
           // Get counts from all tasks (including completed)
           final allTasks = allTasksState.maybeWhen(
             data: (tasks) => tasks,
-            orElse: () => activeTasks,
+            orElse: () => displayTasks,
           );
           final counts = taskNotifier.getTaskCounts(allTasks);
 
@@ -132,6 +138,15 @@ class TaskDashboardScreen extends ConsumerWidget {
                                 count: counts['pending'] ?? 0,
                                 icon: Icons.pending_actions,
                                 color: Colors.orange,
+                                isSelected: filters.status == 'pending',
+                                onTap: () {
+                                  final filterNotifier = ref.read(filterProvider.notifier);
+                                  if (filters.status == 'pending') {
+                                    filterNotifier.setStatus(null);
+                                  } else {
+                                    filterNotifier.setStatus('pending');
+                                  }
+                                },
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -141,6 +156,15 @@ class TaskDashboardScreen extends ConsumerWidget {
                                 count: counts['in_progress'] ?? 0,
                                 icon: Icons.hourglass_empty,
                                 color: Colors.blue,
+                                isSelected: filters.status == 'in_progress',
+                                onTap: () {
+                                  final filterNotifier = ref.read(filterProvider.notifier);
+                                  if (filters.status == 'in_progress') {
+                                    filterNotifier.setStatus(null);
+                                  } else {
+                                    filterNotifier.setStatus('in_progress');
+                                  }
+                                },
                               ),
                             ),
                           ],
@@ -151,6 +175,15 @@ class TaskDashboardScreen extends ConsumerWidget {
                           count: counts['completed'] ?? 0,
                           icon: Icons.check_circle,
                           color: Colors.green,
+                          isSelected: filters.status == 'completed',
+                          onTap: () {
+                            final filterNotifier = ref.read(filterProvider.notifier);
+                            if (filters.status == 'completed') {
+                              filterNotifier.setStatus(null);
+                            } else {
+                              filterNotifier.setStatus('completed');
+                            }
+                          },
                         ),
                       ],
                     ),
@@ -161,18 +194,57 @@ class TaskDashboardScreen extends ConsumerWidget {
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: FilterSection(
-                      selectedCategory: filters.category,
-                      selectedPriority: filters.priority,
-                      onCategoryChanged: (category) {
-                        ref.read(filterProvider.notifier).setCategory(category);
-                      },
-                      onPriorityChanged: (priority) {
-                        ref.read(filterProvider.notifier).setPriority(priority);
-                      },
-                      onClearFilters: () {
-                        ref.read(filterProvider.notifier).clearFilters();
-                      },
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Status filter indicator
+                        if (filters.status != null) ...[
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.blue.shade200),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.filter_alt, 
+                                    color: Colors.blue.shade700, size: 20),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Showing ${filters.status == "in_progress" ? "In Progress" : filters.status![0].toUpperCase() + filters.status!.substring(1)} tasks',
+                                    style: TextStyle(
+                                      color: Colors.blue.shade900,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    ref.read(filterProvider.notifier).setStatus(null);
+                                  },
+                                  child: const Text('Clear'),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                        FilterSection(
+                          selectedCategory: filters.category,
+                          selectedPriority: filters.priority,
+                          onCategoryChanged: (category) {
+                            ref.read(filterProvider.notifier).setCategory(category);
+                          },
+                          onPriorityChanged: (priority) {
+                            ref.read(filterProvider.notifier).setPriority(priority);
+                          },
+                          onClearFilters: () {
+                            ref.read(filterProvider.notifier).clearFilters();
+                          },
+                        ),
+                      ],
                     ),
                   ),
                 ),

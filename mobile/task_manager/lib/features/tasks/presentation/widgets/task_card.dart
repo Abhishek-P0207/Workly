@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../models/task_model.dart';
 import '../providers/task_provider.dart';
+import 'task_details_sheet.dart';
 
 class TaskCard extends ConsumerStatefulWidget {
   final TaskModel task;
@@ -60,9 +61,30 @@ class _TaskCardState extends ConsumerState<TaskCard> {
       
       _lastTapTime = null; // Reset after double tap
     } else {
-      // Single tap - just record the time
+      // Single tap - open details sheet after delay to check for double tap
       _lastTapTime = now;
+      
+      // Wait to see if there's a second tap
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      // If still the same tap time, it was a single tap
+      if (_lastTapTime == now && mounted) {
+        _lastTapTime = null;
+        _openDetailsSheet();
+      }
     }
+  }
+
+  void _openDetailsSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => TaskDetailsSheet(task: widget.task),
+    );
   }
 
   Color _getStatusColor() {
@@ -191,26 +213,6 @@ class _TaskCardState extends ConsumerState<TaskCard> {
                             icon: Icons.person,
                             color: Colors.teal,
                           ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    // Double tap hint
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.touch_app,
-                          size: 12,
-                          color: Colors.grey[400],
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Double tap to mark as completed',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey[400],
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
                       ],
                     ),
                   ],
