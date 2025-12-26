@@ -261,7 +261,7 @@ class _CreateTaskBottomSheetState extends ConsumerState<CreateTaskBottomSheet> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
 
                   // Assigned To Field
                   Text(
@@ -283,33 +283,6 @@ class _CreateTaskBottomSheetState extends ConsumerState<CreateTaskBottomSheet> {
                       prefixIcon: const Icon(Icons.person),
                     ),
                     enabled: !_isLoading,
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Info Banner
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.blue.shade200),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(Icons.info_outline, color: Colors.blue.shade700),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Our AI will analyze your task and suggest category and priority. You can review and edit them in the next step.',
-                            style: TextStyle(
-                              color: Colors.blue.shade900,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
                   ),
                 ],
               ),
