@@ -87,11 +87,11 @@ class _TaskDetailsSheetState extends ConsumerState<TaskDetailsSheet> {
   }
 
   Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
+    final normalizedStatus = status.toLowerCase().replaceAll(' ', '_');
+    switch (normalizedStatus) {
       case 'completed':
         return Colors.green;
       case 'in_progress':
-      case 'in progress':
         return Colors.blue;
       case 'pending':
       default:

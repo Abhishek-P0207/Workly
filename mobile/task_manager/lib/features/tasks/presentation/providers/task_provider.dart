@@ -238,14 +238,9 @@ class TaskNotifier extends StateNotifier<AsyncValue<List<TaskModel>>> {
         return false;
       }
       if (filters.status != null) {
-        final taskStatus = task.status?.toLowerCase() ?? 'pending';
-        final filterStatus = filters.status?.toLowerCase();
-        // Handle both 'in_progress' and 'in progress' formats
-        if (filterStatus == 'in_progress' || filterStatus == 'in progress') {
-          if (taskStatus != 'in_progress' && taskStatus != 'in progress') {
-            return false;
-          }
-        } else if (taskStatus != filterStatus) {
+        final taskStatus = (task.status?.toLowerCase() ?? 'pending').replaceAll(' ', '_');
+        final filterStatus = filters.status?.toLowerCase().replaceAll(' ', '_');
+        if (taskStatus != filterStatus) {
           return false;
         }
       }
@@ -259,10 +254,10 @@ class TaskNotifier extends StateNotifier<AsyncValue<List<TaskModel>>> {
     int completed = 0;
 
     for (var task in tasks) {
-      final status = task.status?.toLowerCase() ?? 'pending';
+      final status = task.status?.toLowerCase()?.replaceAll(' ', '_') ?? 'pending';
       if (status == 'completed') {
         completed++;
-      } else if (status == 'in_progress' || status == 'in progress') {
+      } else if (status == 'in_progress') {
         inProgress++;
       } else {
         pending++;

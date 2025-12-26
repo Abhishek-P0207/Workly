@@ -88,11 +88,11 @@ class _TaskCardState extends ConsumerState<TaskCard> {
   }
 
   Color _getStatusColor() {
-    switch (widget.task.status?.toLowerCase()) {
+    final status = (widget.task.status?.toLowerCase() ?? 'pending').replaceAll(' ', '_');
+    switch (status) {
       case 'completed':
         return Colors.green;
       case 'in_progress':
-      case 'in progress':
         return Colors.blue;
       case 'pending':
       default:

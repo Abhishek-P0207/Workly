@@ -15,7 +15,7 @@ class OfflineBanner extends ConsumerWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.red.shade700,
         boxShadow: [
@@ -26,39 +26,30 @@ class OfflineBanner extends ConsumerWidget {
           ),
         ],
       ),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.cloud_off,
-            color: Colors.white,
-            size: 15,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'No Internet Connection',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 1),
-                Text(
-                  'Some features may not be available',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.9),
-                    fontSize: 12,
-                  ),
-                ),
-              ],
+      child: SafeArea(
+        bottom: false,
+        child: Row(
+          children: [
+            const Icon(
+              Icons.cloud_off,
+              color: Colors.white,
+              size: 16,
             ),
-          ),
-        ],
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'No Internet Connection',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

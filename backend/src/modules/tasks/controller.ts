@@ -155,7 +155,7 @@ export class tasksClass {
     static async updateById(req: Request, res: Response) {
         try {
             const { id } = req.params;
-            const { description, status, assigned_to, due_date, priority, category } = req.body;
+            const { title, description, status, assigned_to, due_date, priority, category } = req.body;
 
             // Check if task exists
             const existing = await TaskService.getTaskById(id);
@@ -166,14 +166,14 @@ export class tasksClass {
             // Prepare updates
             let updates: any = {};
             
-            // If description is updated, re-classify the task
-            if (description) {
+            // Only re-classify if description is updated AND title is not provided
+            if (description && !title) {
                 const task = classifyTask(description);
                 const extractedDueDate = extractDueDate(task.extracted_entities.dates || []);
                 const extractedAssignedTo = task.extracted_entities.people?.[0] || null;
 
                 updates = {
-                    title: description,
+                    title: task.title || description.substring(0, 100),
                     description: description,
                     category: task.category,
                     priority: task.priority,
@@ -185,6 +185,8 @@ export class tasksClass {
             }
 
             // Override with explicit values from request body
+            if (title !== undefined) updates.title = title;
+            if (description !== undefined && updates.description === undefined) updates.description = description;
             if (status !== undefined) updates.status = status;
             if (assigned_to !== undefined) updates.assigned_to = assigned_to;
             if (due_date !== undefined) updates.due_date = due_date;
