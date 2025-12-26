@@ -12,6 +12,17 @@ final filterProvider = StateNotifierProvider<FilterNotifier, TaskFilters>(
   (ref) => FilterNotifier(),
 );
 
+// Provider for active tasks (pending and in_progress only)
+final activeTasksProvider = Provider<AsyncValue<List<TaskModel>>>((ref) {
+  final allTasks = ref.watch(taskProvider);
+  return allTasks.whenData((tasks) {
+    return tasks.where((task) {
+      final status = task.status?.toLowerCase() ?? 'pending';
+      return status != 'completed';
+    }).toList();
+  });
+});
+
 class TaskFilters {
   final String? category;
   final String? priority;
@@ -72,6 +83,7 @@ class TaskNotifier extends StateNotifier<AsyncValue<List<TaskModel>>> {
         category: category,
         priority: priority,
       );
+      // Store all tasks including completed ones
       state = AsyncValue.data(tasks);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
@@ -80,12 +92,77 @@ class TaskNotifier extends StateNotifier<AsyncValue<List<TaskModel>>> {
 
   Future<void> createTask(String input) async {
     try {
-      final newTask = await _api.createTask(rawInput: input);
+      // This is now handled by the bottom sheet with preview flow
+      // Keeping for backward compatibility
+      final preview = await _api.previewTask(description: input);
+      final newTask = await _api.createTask(
+        title: preview.title,
+        description: preview.description,
+        category: preview.category,
+        priority: preview.priority,
+        assignedTo: preview.assignedTo,
+        dueDate: preview.dueDate,
+        extractedEntities: preview.extractedEntities,
+        suggestedActions: preview.suggestedActions,
+      );
       state = state.whenData(
         (tasks) => [newTask, ...tasks],
       );
     } catch (e, st) {
       state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
+
+  Future<void> createTaskFromPreview({
+    required String title,
+    required String description,
+    required String category,
+    required String priority,
+    String? assignedTo,
+    DateTime? dueDate,
+    Map<String, dynamic>? extractedEntities,
+    List<String>? suggestedActions,
+  }) async {
+    try {
+      final newTask = await _api.createTask(
+        title: title,
+        description: description,
+        category: category,
+        priority: priority,
+        assignedTo: assignedTo,
+        dueDate: dueDate,
+        extractedEntities: extractedEntities,
+        suggestedActions: suggestedActions,
+      );
+      state = state.whenData(
+        (tasks) => [newTask, ...tasks],
+      );
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
+
+  Future<void> updateTaskStatus(String taskId, String status) async {
+    try {
+      final updatedTask = await _api.updateTask(
+        taskId: taskId,
+        status: status,
+      );
+      
+      state = state.whenData((tasks) {
+        // Update the task in the list with new status
+        return tasks.map((task) {
+          if (task.id == taskId) {
+            return updatedTask;
+          }
+          return task;
+        }).toList();
+      });
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
     }
   }
 

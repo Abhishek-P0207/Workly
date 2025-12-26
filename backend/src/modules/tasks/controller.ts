@@ -5,7 +5,7 @@ import { TaskService } from "./service";
 import { HistoryService } from "../history/service";
 
 export class tasksClass {
-    static async create(req: Request, res: Response) {
+    static async preview(req: Request, res: Response) {
         try {
             const { description } = req.body;
 
@@ -13,22 +13,60 @@ export class tasksClass {
                 return res.status(400).json({ error: "Task description is required" });
             }
 
-            // Classify the task
+            // Classify the task without saving
             const task = classifyTask(description);
             const dueDate = extractDueDate(task.extracted_entities.dates || []);
             const assignedTo = task.extracted_entities.people?.[0] || null;
 
-            // Prepare task data
-            const taskData = {
-                title: "",
+            // Return classification preview
+            return res.json({
+                title: task.title || description.substring(0, 100),
                 description: description,
                 category: task.category,
                 priority: task.priority,
-                status: "pending",
                 assigned_to: assignedTo,
                 due_date: dueDate,
-                extracted_entities: JSON.stringify(task.extracted_entities),
-                suggested_actions: JSON.stringify(task.suggested_actions),
+                extracted_entities: task.extracted_entities,
+                suggested_actions: task.suggested_actions,
+            });
+        } catch (error) {
+            console.error("Error previewing task:", error);
+            return res.status(500).json({ error: "Failed to preview task" });
+        }
+    }
+
+    static async create(req: Request, res: Response) {
+        try {
+            const { 
+                title,
+                description, 
+                category, 
+                priority, 
+                assigned_to, 
+                due_date,
+                extracted_entities,
+                suggested_actions 
+            } = req.body;
+
+            if (!description) {
+                return res.status(400).json({ error: "Task description is required" });
+            }
+
+            if (!title) {
+                return res.status(400).json({ error: "Task title is required" });
+            }
+
+            // Prepare task data (use provided values or defaults)
+            const taskData = {
+                title: title,
+                description: description,
+                category: category || "general",
+                priority: priority || "medium",
+                status: "pending",
+                assigned_to: assigned_to || null,
+                due_date: due_date || null,
+                extracted_entities: JSON.stringify(extracted_entities || {}),
+                suggested_actions: JSON.stringify(suggested_actions || []),
             };
 
             // Create task via service

@@ -1,14 +1,72 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../models/task_model.dart';
+import '../providers/task_provider.dart';
 
-class TaskCard extends StatelessWidget {
+class TaskCard extends ConsumerStatefulWidget {
   final TaskModel task;
 
   const TaskCard({super.key, required this.task});
 
+  @override
+  ConsumerState<TaskCard> createState() => _TaskCardState();
+}
+
+class _TaskCardState extends ConsumerState<TaskCard> {
+  DateTime? _lastTapTime;
+  bool _isUpdating = false;
+
+  void _handleTap() async {
+    final now = DateTime.now();
+    
+    // Check if this is a double tap (within 500ms)
+    if (_lastTapTime != null && 
+        now.difference(_lastTapTime!) < const Duration(milliseconds: 500)) {
+      // Double tap detected - mark as completed
+      if (_isUpdating) return;
+      
+      setState(() => _isUpdating = true);
+      
+      try {
+        await ref.read(taskProvider.notifier).updateTaskStatus(
+          widget.task.id,
+          'completed',
+        );
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Task "${widget.task.title}" marked as completed!'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isUpdating = false);
+        }
+      }
+      
+      _lastTapTime = null; // Reset after double tap
+    } else {
+      // Single tap - just record the time
+      _lastTapTime = now;
+    }
+  }
+
   Color _getStatusColor() {
-    switch (task.status?.toLowerCase()) {
+    switch (widget.task.status?.toLowerCase()) {
       case 'completed':
         return Colors.green;
       case 'in_progress':
@@ -21,7 +79,7 @@ class TaskCard extends StatelessWidget {
   }
 
   Color _getPriorityColor() {
-    switch (task.priority?.toLowerCase()) {
+    switch (widget.task.priority?.toLowerCase()) {
       case 'high':
         return Colors.red;
       case 'medium':
@@ -42,94 +100,136 @@ class TaskCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: _getStatusColor().withValues(alpha: 0.3)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    task.title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+    return GestureDetector(
+      onTap: _handleTap,
+      child: Opacity(
+        opacity: _isUpdating ? 0.5 : 1.0,
+        child: Card(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: _getStatusColor().withValues(alpha: 0.3)),
+          ),
+          child: Stack(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            widget.task.title,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _getStatusColor().withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: _getStatusColor()),
+                          ),
+                          child: Text(
+                            _formatStatus(widget.task.status),
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: _getStatusColor(),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _getStatusColor().withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: _getStatusColor()),
-                  ),
-                  child: Text(
-                    _formatStatus(task.status),
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: _getStatusColor(),
+                    if (widget.task.description?.isNotEmpty ?? false) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        widget.task.description!,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[700],
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        if (widget.task.category?.isNotEmpty ?? false)
+                          _buildChip(
+                            label: widget.task.category!,
+                            icon: Icons.category,
+                            color: Colors.blue,
+                          ),
+                        if (widget.task.priority?.isNotEmpty ?? false)
+                          _buildChip(
+                            label: widget.task.priority!.toUpperCase(),
+                            icon: Icons.flag,
+                            color: _getPriorityColor(),
+                          ),
+                        if (widget.task.dueDate != null)
+                          _buildChip(
+                            label: DateFormat('MMM dd').format(widget.task.dueDate!),
+                            icon: Icons.calendar_today,
+                            color: Colors.purple,
+                          ),
+                        if (widget.task.assignedTo?.isNotEmpty ?? false)
+                          _buildChip(
+                            label: widget.task.assignedTo!,
+                            icon: Icons.person,
+                            color: Colors.teal,
+                          ),
+                      ],
                     ),
-                  ),
+                    const SizedBox(height: 8),
+                    // Double tap hint
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.touch_app,
+                          size: 12,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Double tap to mark as completed',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey[400],
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            if (task.description?.isNotEmpty ?? false) ...[
-              const SizedBox(height: 8),
-              Text(
-                task.description!,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[700],
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
               ),
+              if (_isUpdating)
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.7),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  ),
+                ),
             ],
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                if (task.category?.isNotEmpty ?? false)
-                  _buildChip(
-                    label: task.category!,
-                    icon: Icons.category,
-                    color: Colors.blue,
-                  ),
-                if (task.priority?.isNotEmpty ?? false)
-                  _buildChip(
-                    label: task.priority!.toUpperCase(),
-                    icon: Icons.flag,
-                    color: _getPriorityColor(),
-                  ),
-                if (task.dueDate != null)
-                  _buildChip(
-                    label: DateFormat('MMM dd').format(task.dueDate!),
-                    icon: Icons.calendar_today,
-                    color: Colors.purple,
-                  ),
-                if (task.assignedTo?.isNotEmpty ?? false)
-                  _buildChip(
-                    label: task.assignedTo!,
-                    icon: Icons.person,
-                    color: Colors.teal,
-                  ),
-              ],
-            ),
-          ],
+          ),
         ),
       ),
     );

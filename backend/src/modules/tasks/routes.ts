@@ -11,6 +11,9 @@ taskRouter.get("/:id", tasksClass.getById);
 // Get task history
 taskRouter.get("/:id/history", tasksClass.getHistory);
 
+// Preview task classification (without saving)
+taskRouter.post("/preview", tasksClass.preview);
+
 // Create a new task
 taskRouter.post("/", tasksClass.create)
 

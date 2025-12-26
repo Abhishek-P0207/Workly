@@ -12,23 +12,24 @@ class TaskDashboardScreen extends ConsumerWidget {
   const TaskDashboardScreen({super.key});
 
   void _showCreateTaskSheet(BuildContext context, WidgetRef ref) {
+    final rootContext = context;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) => CreateTaskBottomSheet(
-        onSubmit: (input) async {
-          await ref.read(taskProvider.notifier).createTask(input);
-        },
+        rootContext: rootContext,
       ),
     );
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final taskState = ref.watch(taskProvider);
+    final allTasksState = ref.watch(taskProvider);
+    final activeTasksState = ref.watch(activeTasksProvider);
     final filters = ref.watch(filterProvider);
     final themeMode = ref.watch(themeProvider);
     final isDarkMode = themeMode == ThemeMode.dark;
@@ -57,7 +58,7 @@ class TaskDashboardScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: taskState.when(
+      body: activeTasksState.when(
         loading: () => const Center(
           child: CircularProgressIndicator(),
         ),
@@ -88,10 +89,16 @@ class TaskDashboardScreen extends ConsumerWidget {
             ],
           ),
         ),
-        data: (tasks) {
+        data: (activeTasks) {
           final taskNotifier = ref.read(taskProvider.notifier);
-          final filteredTasks = taskNotifier.getFilteredTasks(tasks, filters);
-          final counts = taskNotifier.getTaskCounts(filteredTasks);
+          final filteredTasks = taskNotifier.getFilteredTasks(activeTasks, filters);
+          
+          // Get counts from all tasks (including completed)
+          final allTasks = allTasksState.maybeWhen(
+            data: (tasks) => tasks,
+            orElse: () => activeTasks,
+          );
+          final counts = taskNotifier.getTaskCounts(allTasks);
 
           return RefreshIndicator(
             onRefresh: () => ref.read(taskProvider.notifier).fetchTasks(
