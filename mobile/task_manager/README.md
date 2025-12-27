@@ -44,15 +44,12 @@ flutter run -d ios             # iOS
 
 ### Backend Configuration
 
+By default, the backend API is the deployed version hosted on Render.
+
 Update the API base URL in your app:
 ```dart
 // lib/core/constants/api_constants.dart
 const String baseUrl = 'http://localhost:3000/api';
-```
-
-For physical devices, use your computer's IP:
-```dart
-const String baseUrl = 'http://192.168.1.x:3000/api';
 ```
 
 ## 📱 App Structure
@@ -75,9 +72,8 @@ lib/
 
 ## 🎨 Key Screens
 
-- **Dashboard**: Task overview with filters and statistics
-- **Create Task**: Form with AI preview and auto-fill
-- **Task Details**: View task with full history
+- **Dashboard**: Task overview showing the pending and in-progress tasks with filters and statistics
+- **Create Task**: Form with preview and auto-fill
 - **Task List**: Filterable, paginated task list
 
 ## 🧪 Testing
@@ -116,5 +112,3 @@ flutter analyze          # Static analysis
 flutter format .         # Format code
 flutter clean           # Clean build files
 ```
-
-
