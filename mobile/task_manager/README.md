@@ -7,6 +7,7 @@
 - **Task Preview**: Real-time classification preview before saving
 - **Smart Forms**: Auto-fill category, priority, and entities from description
 - **Beautiful UI**: Material Design 3 with modern aesthetics
+- **Gestures**: Pull-to-refresh, double tap to mark as completed and tap to edit.
 - **Task Management**: Create, view, update, and delete tasks
 - **Advanced Filtering**: Filter by category, status, and priority
 - **History Tracking**: View complete task change history
