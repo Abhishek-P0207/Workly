@@ -17,6 +17,7 @@ class TaskCard extends ConsumerStatefulWidget {
 class _TaskCardState extends ConsumerState<TaskCard> {
   DateTime? _lastTapTime;
   bool _isUpdating = false;
+  bool _doubleTapDetected = false;
 
   void _handleTap() async {
     final now = DateTime.now();
@@ -27,6 +28,7 @@ class _TaskCardState extends ConsumerState<TaskCard> {
       // Double tap detected - mark as completed
       if (_isUpdating) return;
       
+      _doubleTapDetected = true; // Flag to prevent single tap action
       setState(() => _isUpdating = true);
       
       try {
@@ -60,15 +62,21 @@ class _TaskCardState extends ConsumerState<TaskCard> {
       }
       
       _lastTapTime = null; // Reset after double tap
+      
+      // Reset the flag after a delay
+      Future.delayed(const Duration(milliseconds: 100), () {
+        _doubleTapDetected = false;
+      });
     } else {
-      // Single tap - open details sheet after delay to check for double tap
-      _lastTapTime = now;
+      // Store tap time for potential double tap
+      final tapTime = now;
+      _lastTapTime = tapTime;
       
       // Wait to see if there's a second tap
       await Future.delayed(const Duration(milliseconds: 500));
       
-      // If still the same tap time, it was a single tap
-      if (_lastTapTime == now && mounted) {
+      // If still the same tap time and no double tap was detected, it was a single tap
+      if (_lastTapTime == tapTime && !_doubleTapDetected && mounted) {
         _lastTapTime = null;
         _openDetailsSheet();
       }
